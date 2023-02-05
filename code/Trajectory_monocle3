@@ -1,0 +1,55 @@
+setwd("D:/R_code/Angiogenesis/")
+load("ensemblGenes2017-08-09.RData")
+library(Seurat)
+library(monocle3)
+# library(monocle)
+load("HUVEC.combined.rdata")
+# HUVEC.combined@assays$integrated@data
+ensemblGenes$gene_short_name = ensemblGenes$external_gene_name
+
+ndims = 30
+HUVEC.combined <- FindNeighbors(HUVEC.combined, dims = 1:ndims
+                                # , k.param = 10
+)
+HUVEC.combined <- FindClusters(HUVEC.combined,
+                               resolution = .7,
+                               # algorithm = 3
+)
+DimPlot(HUVEC.combined, reduction = "umap",pt.size = .5, label = T, label.size = 5,  repel = T)
+integrated_cluster = HUVEC.combined@active.ident
+
+
+ngenes = 2000
+ndims_int = 10
+load(paste0("HUVEC.combined_pca",ndims_int,"_ngenes_",ngenes,".rdata"))
+ndims = 10
+cds <- new_cell_data_set(HUVEC.combined@assays$integrated@data,
+                         cell_metadata = HUVEC.combined@meta.data[,1:8],
+                         gene_metadata = ensemblGenes[rownames(HUVEC.combined),])
+cds <- preprocess_cds(cds, num_dim = ndims, norm_method = "none")
+    
+cds = align_cds(cds, residual_model_formula_str = "~ G2M.Score + S.Score")
+cds <- reduce_dimension(cds)
+cds@colData$clusters = integrated_cluster
+cds@colData$nCount_RNA_log10 = log10(cds@colData$nCount_RNA)
+
+cds <- cluster_cells(cds, resolution = 0.001)
+cds <- learn_graph(cds)
+plot_cells(cds,
+           color_cells_by = "clusters",
+           cell_size = 1,
+           group_label_size = 0.1,
+           show_trajectory_graph = F,
+           trajectory_graph_color = "grey20",
+           trajectory_graph_segment_size = 2,
+           label_leaves = FALSE,
+           label_branch_points = FALSE)
+
+
+cds <- order_cells(cds)
+plot_cells(cds,
+           color_cells_by = "pseudotime",
+           label_groups_by_cluster = FALSE,
+           label_leaves = FALSE,
+           label_branch_points = FALSE,
+           show_trajectory_graph = F)
