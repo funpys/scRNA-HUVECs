@@ -1,0 +1,56 @@
+
+
+load("HUVEC_3d_seurat_filtered.rdata")
+HUVEC_3d_seurat_endo = subset(HUVEC_3d_seurat, cells = colnames(HUVEC_3d_seurat)[HUVEC_3d_seurat$cell_type == "HUVEC"])
+HUVEC_3d_seurat_endo = subset(HUVEC_3d_seurat_endo, cells = colnames(HUVEC_3d_seurat_endo)[HUVEC_3d_seurat_endo$condition =="WO"])
+#HUVEC_3d_seurat_endo = subset(HUVEC_3d_seurat_endo, cells = colnames(HUVEC_3d_seurat_endo)[HUVEC_3d_seurat_endo$condition == "W"])
+
+dim = 1:30
+
+HUVEC_3d_seurat_endo <- RunUMAP(HUVEC_3d_seurat_endo, dims = dim)
+HUVEC_3d_seurat_endo <- FindNeighbors(HUVEC_3d_seurat_endo, dims = dim)
+HUVEC_3d_seurat_endo <- FindClusters(HUVEC_3d_seurat_endo)
+
+DimPlot(HUVEC_3d_seurat_endo, reduction = "umap", label = T, label.size = 5, pt.size = .8)
+DimPlot(HUVEC_3d_seurat_endo, reduction = "umap", label = F, label.size = 5, pt.size = .8, group.by = "condition")
+# save(HUVEC_3d_seurat_endo, file = "HUVEC_3d_seurat_endo_w.rdata")
+# save(HUVEC_3d_seurat_endo, file = "HUVEC_3d_seurat_endo_wo.rdata")
+
+load("HUVEC_3d_seurat_endo_w_filtered.rdata")
+HUVEC_3d_seurat_endo_w = HUVEC_3d_seurat_endo
+load("HUVEC_3d_seurat_endo_wo_filtered.rdata")
+HUVEC_3d_seurat_endo_wo = HUVEC_3d_seurat_endo
+
+ 
+table(HUVEC_3d_seurat_endo_wo@active.ident)
+cells = c()
+Ncls=250
+for (i in names(table(HUVEC_3d_seurat_endo_wo@active.ident))) {
+  
+  if (table(HUVEC_3d_seurat_endo_wo@active.ident)[i]>Ncls) {
+    set.seed(100)
+    cells_sub = sample(colnames(HUVEC_3d_seurat_endo_wo)[HUVEC_3d_seurat_endo_wo@active.ident ==i], Ncls)
+    cells = c(cells, cells_sub)
+  }else{
+    cells_sub = colnames(HUVEC_3d_seurat_endo_wo)[HUVEC_3d_seurat_endo_wo@active.ident ==i]
+    cells = c(cells, cells_sub)
+  }
+}
+  
+  
+HUVEC_list <- SplitObject(HUVEC_3d_seurat_endo, split.by = "condition")
+ngenes = 2000
+  for (i in 1:length(HUVEC_list)) {
+  HUVEC_list[[i]] <- NormalizeData(HUVEC_list[[i]], verbose = FALSE)
+  HUVEC_list[[i]] <- FindVariableFeatures(HUVEC_list[[i]], selection.method = "vst", nfeatures = ngenes, verbose = FALSE)
+  top.hvgs <- getTopHVGs(dec, n=ngenes)
+}
+ndims = 30
+PC9.anchors <- FindIntegrationAnchors(object.list = HUVEC_list, dims = 1:ndims, anchor.features = ngenes)
+HUVEC.combined <- IntegrateData(anchorset = PC9.anchors, dims = 1:ndims)
+HUVEC.combined <- ScaleData(HUVEC.combined, vars.to.regress = c("S.Score", "G2M.Score"), verbose = FALSE)
+HUVEC.combined <- RunPCA(HUVEC.combined, verbose = FALSE)
+HUVEC.combined <- RunUMAP(HUVEC.combined, reduction = "pca", dims = 1:ndims)
+DimPlot(HUVEC.combined, reduction = "umap",pt.size = .5, group.by = "condition", repel = T)
+DimPlot(HUVEC.combined, reduction = "umap", label = T, label.size = 5, pt.size = .5, repel = T)
+save(HUVEC.combined, file = paste0("HUVEC.combined.rdata"))
