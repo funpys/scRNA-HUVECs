@@ -6,7 +6,11 @@ load("ensemblGenes2017-08-09.RData")
 load("HUVEC.combined.rdata")
 ensemblGenes$gene_short_name = ensemblGenes$external_gene_name
 
-
+### Get clusters
+ndims = 30
+HUVEC.combined <- FindNeighbors(HUVEC.combined, dims = 1:ndims)
+HUVEC.combined <- FindClusters(HUVEC.combined, resolution = .7)
+DimPlot(HUVEC.combined, reduction = "umap",pt.size = .5, label = T, label.size = 5,  repel = T)
 
 
 ### Run monocle
