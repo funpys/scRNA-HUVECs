@@ -1,6 +1,9 @@
 library(DropletUtils)
+library(scater)
 load("ensemblGenes2017-08-09.RData")
 
+
+### load raw data
 sce1 <- read10xCounts("./data_3d/w-LF-GEX/")
 colnames(sce1) = paste0("w-",sce1$Barcode)
 
@@ -9,13 +12,11 @@ colnames(sce2) = paste0("wo-",sce2$Barcode)
 
 sce = cbind(sce1, sce2)
 
-### test codes
+### rank plot
 minColSum=160
-
 countGBM = counts(sce)
 countGBMFiltered = countGBM[,colSums(countGBM)>160]
 dim(countGBMFiltered)
-
 
 count = colSums(countGBMFiltered)
 pdf("HUVEC_3D_rankplot.pdf")
@@ -26,24 +27,19 @@ dev.off()
 
 
 
-mtGenes = ensemblGenes$ensembl_gene_id[grepl("^MT-",ensemblGenes$external_gene_name)]
 
-
-
-library(scater)
+### Create SingleCellExperiment object
 sce = SingleCellExperiment(assays=list(counts=countGBMFiltered))
-table(rowSums(countGBMFiltered)>0)
+mtGenes = ensemblGenes$ensembl_gene_id[grepl("^MT-",ensemblGenes$external_gene_name)]
 is.mito = rownames(sce) %in% mtGenes
 length(is.mito[is.mito == TRUE])
 sce_drop_filtered <- addPerCellQC(sce, subsets=list(Mito=is.mito))
-# sce_drop_filtered$pct_dropout = sce_drop_filtered$detected/38623
-sce_drop_filtered$pct_dropout = sce_drop_filtered$detected/41419
 sce_drop_filtered = runColDataPCA(sce_drop_filtered, variables=list(
-  "sum", "detected", "subsets_Mito_percent", "subsets_Mito_sum", "subsets_Mito_detected", "subsets_Mito_percent", "pct_dropout"
+  "sum", "detected", "subsets_Mito_percent", "subsets_Mito_sum", "subsets_Mito_detected", "subsets_Mito_percent"
 ))
 sce_drop_filtered$log10_total_counts = log10(sce_drop_filtered$sum)
 
-## total_counts
+### total_counts
 log_count_cutoff = 3
 
 png(paste0("HUVECs_3d_wo_histogram_totalcount.png"))
@@ -77,7 +73,7 @@ dev.off()
 
 
 
-## pct_counts_Mt
+### pct_counts_Mt
 Mt_ratio_cutoff = 10
 
 png(paste0("HUVECs_3d_wo_histogram_MT_ratio.png"))
@@ -114,7 +110,7 @@ dev.off()
 
 
 
-
+### filter low-quality cells
 sce_drop_filtered$use <- (
   !sce_drop_filtered$filter_counts &
     !sce_drop_filtered$filter_MT 
