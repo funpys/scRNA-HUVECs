@@ -11,8 +11,8 @@ HUVEC_3d_seurat_endo = subset(HUVEC_3d_seurat_endo, cells = colnames(HUVEC_3d_se
 ### Visualization & clustering
 dim = 1:30
 HUVEC_3d_seurat_endo <- RunUMAP(HUVEC_3d_seurat_endo, dims = dim)
-HUVEC_3d_seurat_endo <- FindNeighbors(HUVEC_3d_seurat_endo, dims = dim)
-HUVEC_3d_seurat_endo <- FindClusters(HUVEC_3d_seurat_endo)
+HUVEC_3d_seurat_endo <- FindNeighbors(HUVEC_3d_seurat_endo, dims = dim, k.param = 10)
+HUVEC_3d_seurat_endo <- FindClusters(HUVEC_3d_seurat_endo, resolution = 0.5)
 
 DimPlot(HUVEC_3d_seurat_endo, reduction = "umap", label = T, label.size = 5, pt.size = .8)
 DimPlot(HUVEC_3d_seurat_endo, reduction = "umap", label = F, label.size = 5, pt.size = .8, group.by = "condition")
